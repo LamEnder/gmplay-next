@@ -197,16 +197,16 @@ int main(int argc, char **argv) {
     if (touch) {
         touch_test(&app);
     } else if (dir) {
-        char **list;
-        int n = list_videos(dir, &list), page = 0;
+        int page = 0;
         for (;;) {
+            char **list;
+            int n = list_videos(dir, &list);   // re-listed each time: picks up deletions
             int sel = browser_run(&app, dir, list, n, &page);
-            if (sel < 0 || g_stop) break;
-            play_list(&app, list, n, sel);
-            if (g_stop) break;
+            if (sel >= 0 && !g_stop) play_list(&app, list, n, sel);
+            for (int i = 0; i < n; i++) free(list[i]);
+            free(list);
+            if (sel == BROWSER_EXIT || g_stop) break;
         }
-        for (int i = 0; i < n; i++) free(list[i]);
-        free(list);
     } else {
         play_list(&app, files, nfiles, 0);
     }

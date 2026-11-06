@@ -15,7 +15,7 @@ int ui_text(const Canvas *c, const Font *f, int x, int y, const char *s, uint8_t
 // Truncates with "..." to fit r.w.
 void ui_text_in(const Canvas *c, const Font *f, Rect r, const char *s, int align, uint8_t v);
 
-enum icon { ICON_PLAY, ICON_PREV, ICON_NEXT, ICON_CLOSE };
+enum icon { ICON_PLAY, ICON_PREV, ICON_NEXT, ICON_CLOSE, ICON_TRASH };
 void ui_icon(const Canvas *c, Rect r, enum icon icon, uint8_t v);
 // Outlined button with an icon or a label (label used when not NULL).
 void ui_button(const Canvas *c, Rect r, enum icon icon, const char *label);

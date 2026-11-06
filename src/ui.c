@@ -96,6 +96,15 @@ void ui_icon(const Canvas *c, Rect r, enum icon icon, uint8_t v) {
         ui_fill(c, (Rect){ cx + s / 2 - s / 7, cy - s / 2, s / 7 + 1, s }, v);
         triangle(c, cx - s / 10, cy, s, 1, v);
         break;
+    case ICON_TRASH: {   // lid + handle + bin with two ribs
+        int t = s / 12 + 2, bw = s * 7 / 10, bh = s * 9 / 10, bx = cx - bw / 2, by = cy - s * 3 / 8;
+        ui_fill(c, (Rect){ cx - s * 9 / 20, by - t * 2, s * 9 / 10, t }, v);           // lid
+        ui_frame(c, (Rect){ cx - s / 6, by - t * 2 - s / 7, s / 3, s / 7 + 1 }, t, v);  // handle
+        ui_frame(c, (Rect){ bx, by, bw, bh }, t, v);                                    // bin
+        ui_fill(c, (Rect){ cx - bw / 6 - t / 2, by + bh / 5, t, bh * 3 / 5 }, v);       // ribs
+        ui_fill(c, (Rect){ cx + bw / 6 - t / 2, by + bh / 5, t, bh * 3 / 5 }, v);
+        break;
+    }
     case ICON_CLOSE: {   // two thick diagonals
         int half = s / 2, t = s / 9 + 2;
         for (int dy = -half; dy <= half; dy++)
