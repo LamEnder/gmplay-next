@@ -1,0 +1,16 @@
+# build output
+/build-*/
+/builddir*/
+
+# dependencies: sources and static libs fetched/built by scripts/build-deps.sh
+/deps/
+
+# media files (test videos etc.)
+*.mp4
+*.m4v
+*.mkv
+*.webm
+*.avi
+*.mov
+*.gmv
+*.wav
