@@ -76,8 +76,22 @@ should be `.mp4`.
 
 ## Installing on the Kindle
 
-You need a jailbroken Kindle. Paths are as seen on the Kindle; over USB the
-`/mnt/us/` folder is the root of the Kindle drive.
+You need a jailbroken Kindle on firmware 5.16.3 or later (`kindlehf`).
+
+### From a release (easiest)
+
+1. Download `gmplay-next-<version>-kindlehf.zip` from the
+   [Releases page](https://github.com/LamEnder/gmplay-next/releases).
+2. Connect the Kindle over USB and unzip the file into the root of the Kindle
+   drive. This creates `gmplay/`, `documents/gmplay.sh` and an empty `videos/`
+   folder.
+3. Eject the Kindle. **gmplay** now appears in the library.
+4. Copy [transcoded](#preparing-videos-transcoding) videos into `videos/`.
+
+### Manually
+
+Paths are as seen on the Kindle; over USB the `/mnt/us/` folder is the root of
+the Kindle drive.
 
 | File | Goes to |
 |---|---|
@@ -324,8 +338,9 @@ Logs: `/mnt/us/gmplay/gmplay.log` when started from the scriptlet.
 
 ## License
 
-gmplay 1.5a is Copyright (C) 2012 geekmaster, MIT license. The gmplay 2.0
-source is under the same MIT license.
+The gmplay source is under the MIT license (see [`LICENSE`](LICENSE)):
+gmplay 1.5a is Copyright (C) 2012 geekmaster, gmplay 2.0 is Copyright (C) 2026
+LamEnder.
 
 The built binary statically links:
 
