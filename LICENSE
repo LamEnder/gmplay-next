@@ -20,17 +20,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
---------------------------------------------------------------------------------
-Note on binaries
-
-This license covers the gmplay source code in this repository. Built gmplay
-binaries statically link third-party libraries under their own licenses:
-
-  - FBInk   - GNU GPL v3.0   https://github.com/NiLuJe/FBInk
-  - FFmpeg  - GNU LGPL v2.1 or later (built without GPL parts)  https://ffmpeg.org
-  - The embedded UI font, DejaVu Sans (src/font_data.c), is under the
-    Bitstream Vera / DejaVu font license.
-
-Because of FBInk, a distributed gmplay binary as a whole is covered by the
-GNU GPL v3.0.
