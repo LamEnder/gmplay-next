@@ -11,7 +11,7 @@ static inline bool rect_hit(Rect r, int x, int y) {
 
 enum rotate_mode { ROT_AUTO, ROT_OFF, ROT_ON };
 enum { OD_OFF, OD_ON, OD_MAX };   // overdrive levels
-#define OD_ON_FPS 8.0              // OD_ON = OD_MAX capped at this rate (unless -f is given)
+#define OD_ON_FPS 10.0             // OD_ON = OD_MAX capped at this rate (unless -f is given)
 
 typedef struct {
     enum rotate_mode rotate;
