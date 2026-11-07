@@ -176,3 +176,20 @@ void canvas_present(Screen *s, const Canvas *c, Rect r, enum present_mode mode) 
     blit(s, c, r, mode == PRESENT_VIDEO ? (const uint8_t (*)[256])s->lut_video : (const uint8_t (*)[256])s->lut_gray);
     canvas_refresh(s, c, r, mode);
 }
+
+Rect canvas_rect_to_fb(const Canvas *c, Rect r) {
+    return to_fb(c, clip(c, r));
+}
+
+void canvas_blit_raw(const Screen *s, const Canvas *c, Rect r, uint8_t *dst, int dst_stride) {
+    static uint8_t ident[64][256];
+    if (!ident[0][255])
+        for (int b = 0; b < 64; b++)
+            for (int v = 0; v < 256; v++) ident[b][v] = (uint8_t)v;
+    Screen t = *s;
+    t.fb = dst;
+    t.stride = (uint32_t)dst_stride;
+    t.bpp = 8;
+    r = clip(c, r);
+    if (r.w > 0 && r.h > 0) blit(&t, c, r, (const uint8_t (*)[256])ident);
+}

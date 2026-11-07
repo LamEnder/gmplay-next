@@ -131,7 +131,10 @@ void scaler_draw(Scaler *sc, Screen *s, const uint8_t *src, int ls) {
         int fy = f.y + k;
         uint8_t *restrict dst = s->fb + (size_t)fy * s->stride + f.x;
         // Pass 2: blend + dither. Straight-line so it vectorizes.
-        if (!sc->gray) {
+        if (sc->raw) {
+            for (int x = 0; x < f.w; x++)
+                dst[x] = (uint8_t)((a[x] * w0 + b[x] * w + 128) >> 8);
+        } else if (!sc->gray) {
             const uint8_t *restrict t = sc->thr[fy & 7];
             for (int x = 0; x < f.w; x++) {
                 unsigned v = (a[x] * w0 + b[x] * w + 128) >> 8;

@@ -1,0 +1,3 @@
+# Path to a kdc checkout (custom_kindle_display_controller_driver) with
+# build/kindle/libkdc.a built ("make kindle"). Empty = build without kdc.
+option('kdc_dir', type : 'string', value : '', description : 'kdc source dir (enables -K)')

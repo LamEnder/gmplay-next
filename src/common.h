@@ -22,6 +22,7 @@ typedef struct {
     bool mute;          // no audio
     bool slow_scale;    // force the swscale path (for comparison)
     double av_delay;    // extra output latency to compensate (Bluetooth), secs
+    const char *kdc_preset;   // -K: play video through kdc with this preset (NULL = FBInk)
     bool verbose;
 } Options;
 

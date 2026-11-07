@@ -180,6 +180,7 @@ files, it plays them in order and exits. `-` reads a `.gmv` stream from stdin.
 | `-m` | Mute. |
 | `-a MS` | Audio output delay to compensate for (Bluetooth). Default 150. |
 | `-S` | Use the slower generic scaler (for troubleshooting). |
+| `-K PRESET` | Play video through [kdc](#kdc-per-pixel-drive) with a calibrated preset (`.doses`). Needs the pulse waveform installed; falls back to FBInk otherwise. |
 | `-T` | Touch test: draws a dot wherever you tap. |
 | `-v` | Verbose: device info, file info and timing statistics. |
 
@@ -226,6 +227,25 @@ sound; it never slows the sound down.
 Glitches happen where a refresh is overtaken by the next one. Pick a different
 cap with `-o -f N`.
 
+### kdc (per-pixel drive)
+
+With `-K`, video goes through **kdc**, a per-pixel pulse-drive controller
+(`custom_kindle_display_controller_driver`). It doesn't refresh whole frames
+with A2: a custom short "pulse" waveform drives only the pixels that still
+need to change, up to ~10 times a second, and it never makes gmplay wait.
+On a PW4 (Bad Apple, 30 s):
+
+| | Panel updates | New frames/s | Contrast / ghosting |
+|---|---|---|---|
+| FBInk A2 | 136 | 4.6 | baseline |
+| kdc, `pw4_install3_video.doses` | 303 | **10.9** | better contrast, less ghosting, smoother motion |
+
+To use it, set `KDC_PRESET` in `gmplay.sh` (e.g. `pw4_install3_video.doses`),
+with the kdc tools and presets in `/mnt/us/gmplay/kdc/` (`kdc-pulse.sh`,
+`kdc-session.sh`, `kdc-wfm`, `*.doses`). The launcher pauses the Kindle UI,
+installs the pulse waveform, plays, restores the stock waveform and resumes
+the UI. The pause overlay still uses FBInk: kdc is closed while it shows.
+
 ### Checking a file
 
 Run a video with `-v` over SSH. At the end it prints timing statistics:
@@ -270,6 +290,17 @@ ninja -C build-kindlehf
 
 The binary is statically linked against FFmpeg and FBInk. On the Kindle it only
 needs `libc`, `libm`, `libpthread` and `libz`, which every firmware has.
+
+Optional kdc output (`-K`): build kdc first (`make kindle` in its directory),
+then point meson at it:
+
+```sh
+meson configure build-kindlehf -Dkdc_dir=/path/to/custom_kindle_display_controller_driver
+ninja -C build-kindlehf
+```
+
+Without `kdc_dir`, gmplay builds exactly as before, and `-K` just reports that
+kdc isn't built in.
 
 ### Tests
 

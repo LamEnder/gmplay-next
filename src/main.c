@@ -138,6 +138,8 @@ static void usage(const char *argv0) {
         "  -m              mute (no audio)\n"
         "  -a MS           audio output delay to compensate for, e.g. Bluetooth (default 150)\n"
         "  -S              use the slower generic scaler (for comparison/troubleshooting)\n"
+        "  -K PRESET       video through kdc (per-pixel pulse drive) with a calibrated\n"
+        "                  preset (.doses); needs the pulse waveform installed\n"
         "  -T              touch test\n"
         "  -v              verbose\n", argv0);
 }
@@ -145,7 +147,7 @@ static void usage(const char *argv0) {
 int main(int argc, char **argv) {
     bool touch = false;
     int ch;
-    while ((ch = getopt(argc, argv, "r:gc:oOf:ma:STvh")) != -1) {
+    while ((ch = getopt(argc, argv, "r:gc:oOf:ma:STK:vh")) != -1) {
         switch (ch) {
         case 'r':
             if (!strcmp(optarg, "auto")) opt.rotate = ROT_AUTO;
@@ -162,6 +164,7 @@ int main(int argc, char **argv) {
         case 'S': opt.slow_scale = true; break;
         case 'a': opt.av_delay = atof(optarg) / 1000.0; break;
         case 'T': touch = true; break;
+        case 'K': opt.kdc_preset = optarg; break;
         case 'v': opt.verbose = true; break;
         default: usage(argv[0]); return ch == 'h' ? 0 : 2;
         }
