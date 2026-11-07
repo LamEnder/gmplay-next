@@ -2,7 +2,7 @@
 #include "screen.h"
 
 // Optional video output through kdc (per-pixel pulse-drive controller,
-// custom_kindle_display_controller_driver). The video frame goes into a kdc
+// https://github.com/LamEnder/kindle-kdc). The video frame goes into a kdc
 // frame buffer as plain gray (kdc dithers/quantizes and drives only changed
 // pixels); kdc never blocks, it drops frames the panel can't keep up with.
 //

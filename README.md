@@ -230,7 +230,7 @@ cap with `-o -f N`.
 ### kdc (per-pixel drive)
 
 With `-K`, video goes through **kdc**, a per-pixel pulse-drive controller
-(`custom_kindle_display_controller_driver`). It doesn't refresh whole frames
+([kindle-kdc](https://github.com/LamEnder/kindle-kdc)). It doesn't refresh whole frames
 with A2: a custom short "pulse" waveform drives only the pixels that still
 need to change, up to ~10 times a second, and it never makes gmplay wait.
 On a PW4 (Bad Apple, 30 s):
@@ -291,11 +291,12 @@ ninja -C build-kindlehf
 The binary is statically linked against FFmpeg and FBInk. On the Kindle it only
 needs `libc`, `libm`, `libpthread` and `libz`, which every firmware has.
 
-Optional kdc output (`-K`): build kdc first (`make kindle` in its directory),
+Optional kdc output (`-K`): clone [kindle-kdc](https://github.com/LamEnder/kindle-kdc)
+and build it first (`make kindle` in its directory),
 then point meson at it:
 
 ```sh
-meson configure build-kindlehf -Dkdc_dir=/path/to/custom_kindle_display_controller_driver
+meson configure build-kindlehf -Dkdc_dir=/path/to/kindle-kdc
 ninja -C build-kindlehf
 ```
 
