@@ -51,6 +51,8 @@ tools/kindle-transcode.sh -c mpeg4 my-video.mkv      # lightest on the Kindle's 
 | `-H PIXELS` | 360 | Height. Smaller sources are not upscaled. |
 | `-c CODEC` | `h264` | `h264`, or `mpeg4` (easiest to decode, files ~1/3 bigger). |
 | `-q N` | 22 / 4 | Quality: x264 CRF for `h264`, qscale for `mpeg4`. Lower = better and bigger. |
+| `-a MODE` | `auto` | Audio: `auto` copies AAC/MP3 mono or stereo audio unchanged and re-encodes anything else; `copy` always copies; `aac` always re-encodes. |
+| `-b RATE` | `256k` | AAC bitrate when re-encoding. |
 | `-n` | | No audio. |
 | `-o DIR` | `kindle-videos` | Output folder. |
 | `-y` | | Overwrite existing outputs (otherwise they are skipped). |
@@ -59,11 +61,22 @@ Then copy the files from `kindle-videos/` into `videos/` on the Kindle.
 
 ### The command it runs
 
+For a source with AAC or MP3 audio (most downloads), the audio is copied as is:
+
 ```sh
 ffmpeg -i input.mp4 -vf "fps=12,scale=-2:360,format=gray,format=yuv420p" \
        -c:v libx264 -preset slow -crf 22 -tune fastdecode \
-       -c:a aac -b:a 128k -ar 44100 output.mp4
+       -c:a copy output.mp4
 ```
+
+Other audio (Opus, AC-3, FLAC, surround, …) is re-encoded instead, to AAC at
+256 kb/s and 44.1 kHz with the soxr resampler (the plain one if your FFmpeg
+lacks soxr). Surround is mixed down to stereo without overshooting full scale,
+and if the result would still clip, the volume is lowered just enough to leave
+1.5 dB of headroom (a plain gain change, no limiter). Without that, hot 5.1
+tracks clip audibly: one AC-3 5.1 trailer peaked at +10 dB over full scale when
+downmixed the default way (8.6 dB SI-SDR as heard); with these steps it peaks at
+−1.5 dB (29.6 dB SI-SDR). The script prints what it did with each file's audio.
 
 | Part | Why |
 |---|---|
@@ -72,7 +85,7 @@ ffmpeg -i input.mp4 -vf "fps=12,scale=-2:360,format=gray,format=yuv420p" \
 | `format=gray,format=yuv420p` | Drops the color (the Kindle is grayscale) but keeps a standard 8-bit format. Saves a little decode time, and the bits go into detail instead of color. Also avoids 10-bit output, which some FFmpeg builds produce and which decodes much more slowly. |
 | `-c:v libx264 -preset slow -crf 22` | H.264 at good quality and a small size. Raise `-crf` (e.g. 26) for smaller files. |
 | `-tune fastdecode` | Turns off H.264 features that are expensive to decode (CABAC, deblocking, weighted prediction): ~40% less CPU per frame. |
-| `-c:a aac -b:a 128k -ar 44100` | AAC audio at the Kindle mixer's rate, so gmplay doesn't have to resample. |
+| `-c:a copy` | Keeps the original audio: no quality loss. Re-encoding already-compressed audio adds a second round of artefacts: against the source's own audio, a 128 kb/s AAC re-encode measured 16 dB signal-to-distortion, 256 kb/s 26 dB. Playing the original costs the Kindle little; it converts the sample rate itself (48 → 44.1 kHz measured 51 dB, cleaner than any re-encode). |
 
 For the lightest load, replace the video codec options with `-c:v mpeg4 -q:v 4`
 (MPEG-4 Part 2, "DivX"): about 35% less CPU than H.264, files about a third bigger.
