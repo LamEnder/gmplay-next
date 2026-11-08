@@ -35,42 +35,79 @@ Kindle has one slow CPU core and no hardware video decoder, so a typical 720p
 or 1080p download is too heavy: the picture falls behind the sound and looks
 like slow motion.
 
-Use this [FFmpeg](https://ffmpeg.org/) command:
+### The easy way: `tools/kindle-transcode.sh`
+
+Needs [FFmpeg](https://ffmpeg.org/) on your computer.
 
 ```sh
-ffmpeg -i input.mp4 -vf scale=-2:360 -c:v libx264 -preset slow -crf 22 -tune fastdecode \
+tools/kindle-transcode.sh my-video.mkv               # -> kindle-videos/my-video.mp4
+tools/kindle-transcode.sh ~/Downloads/*.mp4          # several at once
+tools/kindle-transcode.sh -c mpeg4 my-video.mkv      # lightest on the Kindle's CPU
+```
+
+| Option | Default | Effect |
+|---|---|---|
+| `-f FPS` | 12 | Frame rate. Sources that are already slower keep theirs. |
+| `-H PIXELS` | 360 | Height. Smaller sources are not upscaled. |
+| `-c CODEC` | `h264` | `h264`, or `mpeg4` (easiest to decode, files ~1/3 bigger). |
+| `-q N` | 22 / 4 | Quality: x264 CRF for `h264`, qscale for `mpeg4`. Lower = better and bigger. |
+| `-n` | | No audio. |
+| `-o DIR` | `kindle-videos` | Output folder. |
+| `-y` | | Overwrite existing outputs (otherwise they are skipped). |
+
+Then copy the files from `kindle-videos/` into `videos/` on the Kindle.
+
+### The command it runs
+
+```sh
+ffmpeg -i input.mp4 -vf "fps=12,scale=-2:360,format=gray,format=yuv420p" \
+       -c:v libx264 -preset slow -crf 22 -tune fastdecode \
        -c:a aac -b:a 128k -ar 44100 output.mp4
 ```
 
 | Part | Why |
 |---|---|
-| `-vf scale=-2:360` | 360 pixels tall, width to match. About 7× less decoding work than 720p. The screen dithers the picture anyway, so it looks almost the same. |
-| `-c:v libx264` | H.264 video: the best-supported, cheapest-to-decode codec gmplay has. |
-| `-preset slow -crf 22` | Good quality at a small file size. Raise `-crf` (e.g. 26) for smaller files. |
-| `-tune fastdecode` | Turns off H.264 features that are expensive to decode (CABAC, deblocking, weighted prediction). Often saves another 30–40% of decode time. |
-| `-c:a aac -b:a 128k` | AAC audio. |
-| `-ar 44100` | 44.1 kHz, the Kindle mixer's rate, so gmplay doesn't have to resample. |
+| `fps=12` | **The biggest saving.** The screen shows at most ~11 frames/s (5 with plain refreshes), so higher frame rates are decoded only to be thrown away. A 60 fps source at 60 fps costs over 4× the CPU. |
+| `scale=-2:360` | 360 pixels tall, width to match. 480p already costs ~65% more CPU; the screen dithers the picture anyway. |
+| `format=gray,format=yuv420p` | Drops the color (the Kindle is grayscale) but keeps a standard 8-bit format. Saves a little decode time, and the bits go into detail instead of color. Also avoids 10-bit output, which some FFmpeg builds produce and which decodes much more slowly. |
+| `-c:v libx264 -preset slow -crf 22` | H.264 at good quality and a small size. Raise `-crf` (e.g. 26) for smaller files. |
+| `-tune fastdecode` | Turns off H.264 features that are expensive to decode (CABAC, deblocking, weighted prediction): ~40% less CPU per frame. |
+| `-c:a aac -b:a 128k -ar 44100` | AAC audio at the Kindle mixer's rate, so gmplay doesn't have to resample. |
 
-The input can be anything FFmpeg reads (`.mkv`, `.webm`, `.avi`, …). The output
-should be `.mp4`.
+For the lightest load, replace the video codec options with `-c:v mpeg4 -q:v 4`
+(MPEG-4 Part 2, "DivX"): about 35% less CPU than H.264, files about a third bigger.
+
+### Measurements
+
+Kindle PaperWhite 4, 30 s of a 1080p 60 fps trailer, every variant 640×360 with
+the same audio. *CPU* is decoding time per second of video on the Kindle
+(lower leaves more for drawing, audio and kdc). *Quality* is luma SSIM
+against the source (1.0 = identical).
+
+| Encoding | CPU (ms/s) | Size (30 s) | Quality |
+|---|---|---|---|
+| H.264 fastdecode, 60 fps | 417 | 7.3 MB | 0.961 |
+| H.264 default (CABAC), 30 fps | 402 | 5.1 MB | 0.972 |
+| H.264 fastdecode, 480p, 30 fps | 388 | 9.1 MB | 0.972 |
+| H.264 fastdecode, 30 fps | 237 | 6.1 MB | 0.968 |
+| H.264 fastdecode, 15 fps | 133 | 4.8 MB | 0.974 |
+| **H.264 fastdecode, 12 fps, gray** (default) | **100** | **3.8 MB** | **0.978** |
+| **MPEG-4, 12 fps, gray** (`-c mpeg4`) | **65** | 5.1 MB | 0.968 |
+| MPEG-2, 30 fps | 139 | 12.6 MB | 0.968 |
+| MJPEG, 30 fps | 159 | 18.8 MB | 0.971 |
+| VP8, 30 fps | 242 | 3.9 MB | 0.940 |
+
+Played in gmplay with overdrive on: the 60 fps file showed **1.8 frames/s** and
+fell behind the sound; both 12 fps files showed **12.0 frames/s with no frames
+dropped**.
 
 ### Variations
 
-- **Slightly sharper, if your Kindle keeps up:** `scale=-2:480`. 480p is close
-  to the limit on a PaperWhite 4, so check it with `gmplay -v` (see
-  [Performance](#performance)).
-- **Converting a whole folder** (bash):
-
-  ```sh
-  mkdir -p kindle
-  for f in *.mp4 *.mkv *.webm; do
-      [ -e "$f" ] || continue
-      ffmpeg -i "$f" -vf scale=-2:360 -c:v libx264 -preset slow -crf 22 -tune fastdecode \
-             -c:a aac -b:a 128k -ar 44100 "kindle/${f%.*}.mp4"
-  done
-  ```
-
-- **No audio needed:** replace the audio options with `-an` for a smaller file.
+- **Overdrive off / plain refreshes (~5 frames/s on screen):** `-f 8` saves
+  even more.
+- **Slightly sharper:** `-H 480`, if `gmplay -v` shows the decoder keeping up
+  (see [Performance](#performance)).
+- **No audio needed:** `-n` for a smaller file.
 
 ---
 
@@ -258,7 +295,7 @@ french_cancan.mp4: 36 frames shown, 231 dropped, 1.6 fps
 
 If **decode** is above about 70–80% of the frame time (1000 ÷ the video's
 frame rate: 42 ms at 24 fps, 33 ms at 30 fps), or you see **decoder too slow**,
-the file is too heavy: [transcode it smaller](#preparing-videos-transcoding).
+the file is too heavy: [transcode it](#preparing-videos-transcoding) with `tools/kindle-transcode.sh`.
 The example above is a 720p file (72.5 ms against a 42 ms budget). A 360p file
 decodes in under 10 ms per frame.
 
@@ -355,7 +392,7 @@ file is committed, so normal builds don't need Pillow.
 
 | Problem | Fix |
 |---|---|
-| Video lags behind the sound / looks like slow motion | The file is too heavy to decode. [Transcode it](#preparing-videos-transcoding) to 360p H.264. Check with `-v`. |
+| Video lags behind the sound / looks like slow motion | The file is too heavy to decode. Convert it with [`tools/kindle-transcode.sh`](#preparing-videos-transcoding) (12 fps, 360p). Check with `-v`. |
 | No sound | Connect Bluetooth headphones in the Kindle settings before starting gmplay. `-v` prints "no audio output connected" if none is found. |
 | Sound and picture out of sync | Adjust `-a` (default 150 ms). |
 | Ghosting (faint traces of earlier frames) | Use `-c 30` for a cleaning refresh every 30 seconds. |

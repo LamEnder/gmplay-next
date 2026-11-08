@@ -14,3 +14,6 @@
 *.mov
 *.gmv
 *.wav
+
+# output of tools/kindle-transcode.sh
+/kindle-videos/
