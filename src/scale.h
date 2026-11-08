@@ -13,6 +13,7 @@
 typedef struct {
     int sw, sh, ls;          // source size + linesize the tables were built for
     bool limited, rot, gray;
+    bool raw;                // output plain gray, no dither (set before scaler_draw; kdc)
     Rect vr;                 // destination rect on the canvas
     Rect fr;                 // destination rect in fb coordinates
     int nsrc;                // source lines along the outer axis

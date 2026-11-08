@@ -12,6 +12,7 @@
 
 #include "audio.h"
 #include "input.h"
+#include "kdcout.h"
 #include "scale.h"
 #include "ui.h"
 
@@ -322,6 +323,9 @@ PlayResult player_run(App *app, const char *path, bool has_prev, bool has_next) 
     Rect full = { 0, 0, v.cv.w, v.cv.h };
     ui_fill(&v.cv, full, WHITE);
     canvas_present(scr, &v.cv, full, PRESENT_FLASH);
+    // Optional kdc output (-K): owns the panel while video plays; closed for
+    // the pause overlay (FBInk) and reopened on resume.
+    KdcOut *ko = opt.kdc_preset ? kdcout_open(scr, opt.kdc_preset, opt.gray, opt.verbose) : NULL;
 
     PlayResult res = PL_END;
     double t0 = now_sec(), last_show = 0, last_start = 0, last_clean = now_sec(), t_start = now_sec();
@@ -332,8 +336,10 @@ PlayResult player_run(App *app, const char *path, bool has_prev, bool has_next) 
         if (g_stop) { res = PL_CLOSE; break; }
         if (tapped || input_tap(0, &tx, &ty)) {
             tapped = false;
+            if (ko) { kdcout_close(ko, opt.verbose); ko = NULL; }
             PlayResult r = pause_ui(app, &v, name, has_prev, has_next);
             if (r != PL_CONTINUE) { res = r; break; }
+            if (opt.kdc_preset) ko = kdcout_open(scr, opt.kdc_preset, opt.gray, opt.verbose);
             t0 = now_sec() - v.pos;   // resume from the frame on screen
             audio_play(v.au, v.pos);
             last_show = last_start = last_clean = now_sec();
@@ -376,14 +382,51 @@ PlayResult player_run(App *app, const char *path, bool has_prev, bool has_next) 
             tapped = input_tap(left < 20 ? left : 20, &tx, &ty);
         }
 
+        // kdc still holds the previous frame at this one's due time: drop it
+        // before spending the single CPU core on scaling it. (Checked here,
+        // not before waiting: kdc usually takes its frame during the wait.)
+        if (ko && kdcout_busy(ko) && !(opt.clean_secs > 0 && now_sec() - last_clean >= opt.clean_secs)) {
+            v.dropped++;
+            av_frame_unref(v.frm);
+            continue;
+        }
+
         t = last_start = now_sec();
         bool flash = opt.clean_secs > 0 && t - last_clean >= opt.clean_secs;
         enum present_mode mode = flash ? PRESENT_FLASH : PRESENT_VIDEO;
         double t1;
-        if (scr->bpp == 8 && !opt.slow_scale && scaler_supports(v.frm->format) &&
-            scaler_setup(&v.sc, scr, &v.cv, v.vr, v.frm->width, v.frm->height, v.frm->linesize[0],
-                         v.frm->color_range != AVCOL_RANGE_JPEG && v.frm->format != AV_PIX_FMT_YUVJ420P &&
-                         v.frm->format != AV_PIX_FMT_YUVJ422P && v.frm->format != AV_PIX_FMT_YUVJ444P)) {
+        bool limited = v.frm->color_range != AVCOL_RANGE_JPEG && v.frm->format != AV_PIX_FMT_YUVJ420P &&
+                       v.frm->format != AV_PIX_FMT_YUVJ422P && v.frm->format != AV_PIX_FMT_YUVJ444P;
+        bool fast = !opt.slow_scale && scaler_supports(v.frm->format);
+        if (ko) {
+            // kdc: plain gray into kdc's frame buffer, no waiting - kdc dithers,
+            // drives only changed pixels and drops what the panel can't take.
+            int kstride;
+            uint8_t *kbuf = kdcout_begin(ko, &kstride);
+            Screen ks = *scr;
+            ks.fb = kbuf;
+            ks.stride = (uint32_t)kstride;
+            ks.bpp = 8;
+            Rect fr;
+            t1 = now_sec();
+            if (fast && scaler_setup(&v.sc, &ks, &v.cv, v.vr, v.frm->width, v.frm->height,
+                                     v.frm->linesize[0], limited)) {
+                v.sc.raw = true;
+                scaler_draw(&v.sc, &ks, v.frm->data[0], v.frm->linesize[0]);
+                fr = v.sc.fr;
+            } else {
+                draw_frame(&v, v.frm);
+                canvas_blit_raw(scr, &v.cv, v.vr, kbuf, kstride);
+                fr = canvas_rect_to_fb(&v.cv, v.vr);
+            }
+            double t2 = now_sec();
+            kdcout_publish(ko, fr);
+            if (flash) kdcout_clean(ko);
+            v.t_scale += t2 - t1;
+            v.t_show += now_sec() - t2;
+        } else if (scr->bpp == 8 && fast &&
+            scaler_setup(&v.sc, scr, &v.cv, v.vr, v.frm->width, v.frm->height, v.frm->linesize[0], limited)) {
+            v.sc.raw = false;
             // Fused scale + dither + rotate into a back buffer while the panel
             // is still busy with the previous frame, then copied over (~2 ms)
             // once it's safe (see canvas_begin).
@@ -417,6 +460,7 @@ PlayResult player_run(App *app, const char *path, bool has_prev, bool has_next) 
         keep_last(&v);
     }
 
+    if (ko) kdcout_close(ko, opt.verbose);
     double secs = now_sec() - t_start;
     printf("%s: %u frames shown, %u dropped, %.1f fps\n", name, v.shown, v.dropped,
            secs > 0 ? v.shown / secs : 0.0);

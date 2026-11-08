@@ -1,0 +1,3 @@
+# Path to a kdc checkout (https://github.com/LamEnder/kindle-kdc) with
+# build/kindle/libkdc.a built ("make kindle"). Empty = build without kdc.
+option('kdc_dir', type : 'string', value : '', description : 'kdc source dir (enables -K)')

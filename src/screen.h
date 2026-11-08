@@ -40,3 +40,7 @@ void canvas_present(Screen *s, const Canvas *c, Rect r, enum present_mode mode);
 void canvas_begin(Screen *s, enum present_mode mode);                     // wait for the panel if needed
 void canvas_refresh(Screen *s, const Canvas *c, Rect r, enum present_mode mode);
 void canvas_from_fb(const Canvas *c, int fx, int fy, int *lx, int *ly);
+// Canvas rect -> fb rect, and a rotated copy of it with no dither into a gray8
+// fb-shaped buffer (kdc video output).
+Rect canvas_rect_to_fb(const Canvas *c, Rect r);
+void canvas_blit_raw(const Screen *s, const Canvas *c, Rect r, uint8_t *dst, int dst_stride);
