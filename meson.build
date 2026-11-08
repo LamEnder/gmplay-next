@@ -1,5 +1,5 @@
 project('gmplay', 'c',
-  version : '2.1.0',
+  version : '2.1.1',
   license : 'MIT',
   default_options : ['c_std=gnu11', 'warning_level=2', 'buildtype=release', 'b_ndebug=if-release'])
 
