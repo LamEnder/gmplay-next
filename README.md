@@ -120,10 +120,15 @@ You need a jailbroken Kindle on firmware 5.16.3 or later (`kindlehf`).
 1. Download `gmplay-next-<version>-kindlehf.zip` from the
    [Releases page](https://github.com/LamEnder/gmplay-next/releases).
 2. Connect the Kindle over USB and unzip the file into the root of the Kindle
-   drive. This creates `gmplay/`, `documents/gmplay.sh` and an empty `videos/`
+   drive. This creates `gmplay/` (with the optional [kdc](#kdc-per-pixel-drive)
+   tools in `gmplay/kdc/`), `documents/gmplay.sh` and an empty `videos/`
    folder.
 3. Eject the Kindle. **gmplay** now appears in the library.
 4. Copy [transcoded](#preparing-videos-transcoding) videos into `videos/`.
+
+**Updating:** unzip the new release over the old one. This replaces
+`documents/gmplay.sh`, so set `OPTS` / `KDC_PRESET` in it again if you had
+changed them. Your videos are not touched.
 
 ### Manually
 
@@ -277,11 +282,21 @@ On a PW4 (Bad Apple, 30 s):
 | FBInk A2 | 136 | 4.6 | baseline |
 | kdc, `pw4_install3_video.doses` | 303 | **10.9** | better contrast, less ghosting, smoother motion |
 
-To use it, set `KDC_PRESET` in `gmplay.sh` (e.g. `pw4_install3_video.doses`),
-with the kdc tools and presets in `/mnt/us/gmplay/kdc/` (`kdc-pulse.sh`,
-`kdc-session.sh`, `kdc-wfm`, `*.doses`). The launcher pauses the Kindle UI,
-installs the pulse waveform, plays, restores the stock waveform and resumes
-the UI. The pause overlay still uses FBInk: kdc is closed while it shows.
+> [!WARNING]
+> **Experimental, Kindle PaperWhite 4 only, off by default.** kdc loads a
+> custom waveform into the display controller for the session. Custom
+> waveforms and fast refresh can cause image retention, and the long-term
+> effect on the panel is unknown. It has been run on one PW4 (firmware
+> 5.18.1.1.1). A reboot always restores the stock waveform. Read the
+> [kdc README](https://github.com/LamEnder/kindle-kdc) before enabling it.
+
+To use it, set `KDC_PRESET` in `documents/gmplay.sh`, e.g.
+`KDC_PRESET="pw4_install3_video.doses"` (the best-tested video preset). The
+kdc tools and presets live in `/mnt/us/gmplay/kdc/` (`kdc-pulse.sh`,
+`kdc-session.sh`, `kdc-wfm`, `*.doses`); release zips include them. The
+launcher pauses the Kindle UI, installs the pulse waveform, plays, restores the
+stock waveform and resumes the UI. If the install fails, it plays with FBInk.
+The pause overlay still uses FBInk: kdc is closed while it shows.
 
 ### Checking a file
 
